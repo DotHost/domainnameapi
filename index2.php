@@ -5,16 +5,13 @@ error_reporting(E_ALL);
 
 require_once __DIR__ . '/DomainNameApi/DomainNameAPI_PHPLibrary.php';
 
-$username = 'dothost';
-$password = '@DotEightPlus2019';
+$username = 'test1.dna@apiname.com';
+$password = 'FsUvpJMzQ69scpqE';
 
 $dna = new \DomainNameApi\DomainNameAPI_PHPLibrary($username, $password);
 
-// Parse the path and remove the directory name from the start
+// Parse the path
 $path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
-
-// Remove 'php-dna' if it’s present at the beginning of the path
-//$path = preg_replace('/^php-dna\//', '', $path);
 
 // Set the content type to JSON for all responses
 header('Content-Type: application/json');
