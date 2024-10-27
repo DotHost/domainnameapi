@@ -1,0 +1,22 @@
+{
+	"name": "domainreseller/php-dna",
+	"type": "library",
+	"require": {
+		"php": ">=8.1.0",
+		"ext-soap": "*",
+		"ext-json": "*",
+		"ext-curl": "*"
+	},
+	"autoload": {
+		"psr-0": {
+			"DomainNameApi": "."
+		}
+	},
+	"authors": [
+		{
+			"name": "DotHost",
+			"email": "support@usedothost.com"
+		}
+	],
+	"minimum-stability": "dev"
+}
