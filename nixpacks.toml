@@ -1,11 +1,12 @@
 [phases.setup]
-nixPkgs = ["apacheHttpd", "php", "python311Packages.supervisor"]
+nixPkgs = ["apacheHttpd", "php", "composer", "python311Packages.supervisor"]
 
 [phases.build]
 cmds = [
     "mkdir -p /etc/supervisor/conf.d/",
     "cp /assets/worker-*.conf /etc/supervisor/conf.d/",
     "cp /assets/supervisord.conf /etc/supervisord.conf",
+    "composer install --ignore-platform-reqs", # Composer to install PHP dependencies
     "chmod +x /assets/start.sh",
     "..."
 ]
