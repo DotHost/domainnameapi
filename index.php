@@ -14,7 +14,7 @@ $dna = new \DomainNameApi\DomainNameAPI_PHPLibrary($username, $password);
 $path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 
 // Remove 'php-dna' if it’s present at the beginning of the path
-//$path = preg_replace('/^php-dna\//', '', $path);
+$path = preg_replace('/^php-dna\//', '', $path);
 
 // Set the content type to JSON for all responses
 header('Content-Type: application/json');
@@ -27,7 +27,9 @@ switch ($path) {
         break;
 
     case 'tldlist':
-        $tldlist = $dna->GetTldList(2);
+        // Get the 'count' parameter from the query string, default to 2 if not set
+        $count = isset($_GET['count']) ? (int)$_GET['count'] : 2;
+        $tldlist = $dna->GetTldList($count);
         echo json_encode($tldlist);
         break;
 
