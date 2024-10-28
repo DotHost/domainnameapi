@@ -10,15 +10,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Get JSON input from the request body
 $input = json_decode(file_get_contents("php://input"), true);
 
-// Fetch required parameters
-$username = getRequiredParameter('username', $input);
-$password = getRequiredParameter('password', $input);
-
-// Initialize the DomainNameAPI class
-$dna = new \DomainNameApi\DomainNameAPI_PHPLibrary($username, $password);
-
 // Determine the action based on the query parameter
-$action = $_GET['action'] ?? 'account';
+$action = $_GET['action'] ?? 'status';
+
+// Initialize the DomainNameAPI class only if needed
+$dna = null;
+
+// Only fetch required parameters and instantiate the API class if there is a valid action
+if ($action !== 'status') {
+    $username = getRequiredParameter('username', $input);
+    $password = getRequiredParameter('password', $input);
+
+    // Initialize the DomainNameAPI class with username and password
+    $dna = new \DomainNameApi\DomainNameAPI_PHPLibrary($username, $password);
+}
 
 // Execute the requested action and return the response
 if ($action === 'tldlist') {
@@ -40,14 +45,17 @@ if ($action === 'tldlist') {
     $sld = $matches[1];
     $tld = $matches[2];
 
-    // Split TLD by dots for each part if needed
-    $tldParts = explode('.', $tld);
-
     // Call CheckAvailability API method
     $response = $dna->CheckAvailability([$sld], [$tld], 1, 'create');
-} else {
-    // Default action: Fetch reseller account details
+} elseif ($action === 'resellerdetails') {
+    // Fetch reseller account details
     $response = $dna->GetResellerDetails();
+} else {
+    // Default action: return active status message
+    $response = [
+        'status' => 'success',
+        'message' => 'Domain Name API is active.'
+    ];
 }
 
 // Check for errors in the response and send an error response if necessary
