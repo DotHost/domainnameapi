@@ -1,5 +1,7 @@
 ## Installation and Integration Guide
 
+Uptime: [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v2/monitor/1mhpy.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
+
 ### Minimum Requirements
 
 - PHP 8.1 or higher
