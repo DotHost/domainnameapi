@@ -2,60 +2,65 @@
 require_once __DIR__ . '/utilities.php';
 require_once __DIR__ . '/DomainNameApi/DomainNameAPI_PHPLibrary.php';
 
-// Ensure the request method is POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    sendErrorResponse(405, "API_405_ERROR", "Only POST requests are allowed");
-}
-
-// Get JSON input from the request body
-$input = json_decode(file_get_contents("php://input"), true);
-
 // Determine the action based on the query parameter
 $action = $_GET['action'] ?? 'status';
 
-// Initialize the DomainNameAPI class only if needed
+// Initialize the DomainNameAPI class if needed
 $dna = null;
 
-// Only fetch required parameters and instantiate the API class if there is a valid action
-if ($action !== 'status') {
-    $username = getRequiredParameter('username', $input);
-    $password = getRequiredParameter('password', $input);
-
-    // Initialize the DomainNameAPI class with username and password
-    $dna = new \DomainNameApi\DomainNameAPI_PHPLibrary($username, $password);
-}
-
-// Execute the requested action and return the response
-if ($action === 'tldlist') {
-    // Get TLD list
-    $count = is_numeric($input['count'] ?? null) ? (int)$input['count'] : 2;
-    $response = $dna->GetTldList($count);
-} elseif ($action === 'singlecheckavailability') {
-    // Check domain availability
-
-    // Ensure domain parameter is provided
-    $domain = getRequiredParameter('domain', $input);
-
-    // Validate domain format, allowing for multi-part TLDs (e.g., .com.ng, .co.uk)
-    if (!preg_match('/^([a-zA-Z0-9-]+)\.([a-zA-Z.]{2,})$/', $domain, $matches)) {
-        sendErrorResponse(400, "API_400_ERROR", "Invalid domain format. Use format: example.com or example.com.ng");
+// Handle default status action (GET request)
+if ($action === 'status') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        sendErrorResponse(405, "API_405_ERROR", "Only GET requests are allowed for the status action");
     }
 
-    // Extract SLD and TLD
-    $sld = $matches[1];
-    $tld = $matches[2];
-
-    // Call CheckAvailability API method
-    $response = $dna->CheckAvailability([$sld], [$tld], 1, 'create');
-} elseif ($action === 'resellerdetails') {
-    // Fetch reseller account details
-    $response = $dna->GetResellerDetails();
-} else {
     // Default action: return active status message
     $response = [
         'status' => 'success',
         'message' => 'Domain Name API is active.'
     ];
+} else {
+    // Ensure the request method is POST for other actions
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        sendErrorResponse(405, "API_405_ERROR", "Only POST requests are allowed for this action");
+    }
+
+    // Get JSON input from the request body
+    $input = json_decode(file_get_contents("php://input"), true);
+
+    // Only fetch required parameters and instantiate the API class if there is a valid action
+    $username = getRequiredParameter('username', $input);
+    $password = getRequiredParameter('password', $input);
+    $dna = new \DomainNameApi\DomainNameAPI_PHPLibrary($username, $password);
+
+    // Execute the requested action and return the response
+    if ($action === 'tldlist') {
+        // Get TLD list
+        $count = is_numeric($input['count'] ?? null) ? (int)$input['count'] : 2;
+        $response = $dna->GetTldList($count);
+    } elseif ($action === 'singlecheckavailability') {
+        // Check domain availability
+
+        // Ensure domain parameter is provided
+        $domain = getRequiredParameter('domain', $input);
+
+        // Validate domain format
+        if (!preg_match('/^([a-zA-Z0-9-]+)\.([a-zA-Z.]{2,})$/', $domain, $matches)) {
+            sendErrorResponse(400, "API_400_ERROR", "Invalid domain format. Use format: example.com or example.com.ng");
+        }
+
+        // Extract SLD and TLD
+        $sld = $matches[1];
+        $tld = $matches[2];
+
+        // Call CheckAvailability API method
+        $response = $dna->CheckAvailability([$sld], [$tld], 1, 'create');
+    } elseif ($action === 'resellerdetails') {
+        // Fetch reseller account details
+        $response = $dna->GetResellerDetails();
+    } else {
+        sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
+    }
 }
 
 // Check for errors in the response and send an error response if necessary
