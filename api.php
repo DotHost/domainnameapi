@@ -68,7 +68,6 @@ if ($action === 'status') {
         $privacyProtection = isset($input['privacyProtection']) ? (bool)$input['privacyProtection'] : false;
         $eppLock = isset($input['eppLock']) ? (bool)$input['eppLock'] : true;
 
-        // Register domain with dynamic nameservers, privacy option, and EPP lock
         $response = $dna->RegisterWithContactInfo(
             $domainName,
             $period,
@@ -82,13 +81,16 @@ if ($action === 'status') {
             $eppLock,
             $privacyProtection
         );
-    } elseif ($action === 'modifydomainprivacy') {
+    } elseif ($action === 'domainlist') {
+        // Fetch the domain list
+        $response = $dna->GetList();
+    } elseif ($action === 'domaindetails') {
+        // Fetch details for a specific domain
         $domainName = getRequiredParameter('domain', $input);
-        $privacyStatus = getRequiredParameter('status', $input);
-        $privacyStatus = filter_var($privacyStatus, FILTER_VALIDATE_BOOLEAN);
-
-        // Modify privacy protection status of the domain
-        $response = $dna->ModifyPrivacyProtectionStatus($domainName, $privacyStatus);
+        $response = $dna->GetDetails($domainName);
+    } elseif ($action === 'checkbalance') {
+        // Check reseller account balance
+        $response = $dna->GetCurrentBalance();
     } else {
         sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
     }
