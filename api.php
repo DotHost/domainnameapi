@@ -2,68 +2,68 @@
 require_once __DIR__ . '/utilities.php';
 require_once __DIR__ . '/DomainNameApi/DomainNameAPI_PHPLibrary.php';
 
-// Determine the action based on the query parameter
 $action = $_GET['action'] ?? 'status';
 
-// Initialize the DomainNameAPI class if needed
 $dna = null;
 
-// Handle default status action (GET request)
 if ($action === 'status') {
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
         sendErrorResponse(405, "API_405_ERROR", "Only GET requests are allowed for the status action");
     }
-
-    // Default action: return active status message
-    $response = [
-        'status' => 'success',
-        'message' => 'Domain Name API is active.'
-    ];
+    $response = ['status' => 'success', 'message' => 'Domain Name API is active.'];
 } else {
-    // Ensure the request method is POST for other actions
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         sendErrorResponse(405, "API_405_ERROR", "Only POST requests are allowed for this action");
     }
 
-    // Get JSON input from the request body
     $input = json_decode(file_get_contents("php://input"), true);
-
-    // Only fetch required parameters and instantiate the API class if there is a valid action
     $username = getRequiredParameter('username', $input);
     $password = getRequiredParameter('password', $input);
     $dna = new \DomainNameApi\DomainNameAPI_PHPLibrary($username, $password);
 
-    // Execute the requested action and return the response
     if ($action === 'tldlist') {
-        // Get TLD list
         $count = is_numeric($input['count'] ?? null) ? (int)$input['count'] : 2;
         $response = $dna->GetTldList($count);
     } elseif ($action === 'singlecheckavailability') {
-        // Check domain availability
-
-        // Ensure domain parameter is provided
         $domain = getRequiredParameter('domain', $input);
-
-        // Validate domain format
         if (!preg_match('/^([a-zA-Z0-9-]+)\.([a-zA-Z.]{2,})$/', $domain, $matches)) {
-            sendErrorResponse(400, "API_400_ERROR", "Invalid domain format. Use format: example.com or example.com.ng");
+            sendErrorResponse(400, "API_400_ERROR", "Invalid domain format.");
         }
-
-        // Extract SLD and TLD
         $sld = $matches[1];
         $tld = $matches[2];
-
-        // Call CheckAvailability API method
         $response = $dna->CheckAvailability([$sld], [$tld], 1, 'create');
+    } elseif ($action === 'bulkcheckavailability') {
+        $domains = getRequiredParameter('domains', $input);
+        if (!is_array($domains) || empty($domains)) {
+            sendErrorResponse(400, "API_400_ERROR", "Domains must be provided as a non-empty array.");
+        }
+
+        $availabilityResults = [];
+        foreach ($domains as $domain) {
+            if (!preg_match('/^([a-zA-Z0-9-]+)\.([a-zA-Z.]{2,})$/', $domain, $matches)) {
+                $availabilityResults[$domain] = [
+                    'status' => 'error',
+                    'message' => "Invalid domain format."
+                ];
+                continue;
+            }
+            $sld = $matches[1];
+            $tld = $matches[2];
+            $result = $dna->CheckAvailability([$sld], [$tld], 1, 'create');
+            $availabilityResults[$domain] = $result;
+        }
+
+        $response = [
+            'status' => 'success',
+            'availability' => $availabilityResults
+        ];
     } elseif ($action === 'resellerdetails') {
-        // Fetch reseller account details
         $response = $dna->GetResellerDetails();
     } else {
         sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
     }
 }
 
-// Check for errors in the response and send an error response if necessary
 if (isset($response['result']) && $response['result'] === "ERROR") {
     $errorCode = $response['error']['Code'] ?? "UNKNOWN_ERROR";
     $errorMessage = $response['error']['Message'] ?? "An error occurred";
@@ -71,5 +71,4 @@ if (isset($response['result']) && $response['result'] === "ERROR") {
     sendErrorResponse(400, $errorCode, $errorMessage, $errorDetails);
 }
 
-// Return the successful response
 echo json_encode($response);

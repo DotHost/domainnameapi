@@ -16,10 +16,10 @@ function sendErrorResponse($code, $errorCode, $message, $details = "No additiona
 }
 
 // Validate and fetch a required parameter from input
-function getRequiredParameter($paramName, $input)
+function getRequiredParameter($name, $input)
 {
-    if (!isset($input[$paramName]) || !is_string($input[$paramName]) || empty(trim($input[$paramName]))) {
-        sendErrorResponse(400, "API_400_ERROR", "$paramName is required and must be a non-empty string");
+    if (!isset($input[$name]) || (is_array($input[$name]) && empty($input[$name]))) {
+        sendErrorResponse(400, "API_400_ERROR", "$name is required and must be a non-empty array.");
     }
-    return trim($input[$paramName]);
+    return $input[$name];
 }
