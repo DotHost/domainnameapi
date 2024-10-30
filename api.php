@@ -82,6 +82,13 @@ if ($action === 'status') {
             $eppLock,
             $privacyProtection
         );
+    } elseif ($action === 'modifydomainprivacy') {
+        $domainName = getRequiredParameter('domain', $input);
+        $privacyStatus = getRequiredParameter('status', $input);
+        $privacyStatus = filter_var($privacyStatus, FILTER_VALIDATE_BOOLEAN);
+
+        // Modify privacy protection status of the domain
+        $response = $dna->ModifyPrivacyProtectionStatus($domainName, $privacyStatus);
     } else {
         sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
     }
