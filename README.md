@@ -27,6 +27,12 @@ or you can download the files and self host on a cPanel or VPS server
 
 ```
 
+## Configuration
+
+- Change the default nameserver in the /DomainNameAPI directory
+- function of RegisterWithContactInfo
+
+
 ## Response and Error Codes with Explanations
 
 | Code | Description                                     | Detail                                                                                  |

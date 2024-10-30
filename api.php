@@ -59,6 +59,28 @@ if ($action === 'status') {
         ];
     } elseif ($action === 'resellerdetails') {
         $response = $dna->GetResellerDetails();
+    } elseif ($action === 'registerdomain') {
+        $domainName = getRequiredParameter('domain', $input);
+        $period = getRequiredParameter('period', $input);
+        $contact = getRequiredParameter('contact', $input);
+        $nameservers = getRequiredParameter('nameservers', $input);
+        $privacyProtection = isset($input['privacyProtection']) ? (bool)$input['privacyProtection'] : false;
+        $eppLock = isset($input['eppLock']) ? (bool)$input['eppLock'] : true;
+
+        // Register domain with dynamic nameservers, privacy option, and EPP lock
+        $response = $dna->RegisterWithContactInfo(
+            $domainName,
+            $period,
+            [
+                'Administrative' => $contact,
+                'Billing'        => $contact,
+                'Technical'      => $contact,
+                'Registrant'     => $contact
+            ],
+            $nameservers,
+            $eppLock,
+            $privacyProtection
+        );
     } else {
         sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
     }

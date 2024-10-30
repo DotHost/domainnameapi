@@ -1202,7 +1202,7 @@ class DomainNameAPI_PHPLibrary
         $domainName,
         $period,
         $contacts,
-        $nameServers = ["dns.domainnameapi.com", "web.domainnameapi.com"],
+        $nameServers = ["ns1.usedothost.com", "ns2.usedothost.com"],
         $eppLock = true,
         $privacyLock = false,
         $addionalAttributes = []
