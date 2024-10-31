@@ -25,7 +25,7 @@ Rate Limit:
 
 or you can download the files and self host on a cPanel or VPS server
 
-````
+```
 
 ## Configuration
 
@@ -35,12 +35,20 @@ or you can download the files and self host on a cPanel or VPS server
 
 ## Note
 
+
 it takes a while for child nameservers to get updated, registered or deleted.
+
 
 When domain is registered, it may take some time to get fully updated on the internet
 
 
-You can use the ```SaveContact`` endpoint to save your contact information and pass them to the ```RegisterDomain``` endpoint using the ```GetContact``` endpoint
+## CAUTION 🚧
+
+
+``TransferDomain`` endpoint and ``CancelTransfer`` endpoint haven't been tested, We should
+test sometime soon but do well to share with us a sample response to update our
+documentation if you test!
+
 
 
 
@@ -56,4 +64,4 @@ You can use the ```SaveContact`` endpoint to save your contact information and p
 | 2302 | Object exists                                   | Domain or nameserver info already exists in the database.                               |
 | 2303 | Object does not exist                           | Domain or nameserver info does not exist in the database. A new record must be created. |
 | 2304 | Object status prohibits operation               | Domain status not eligible for updates, it's locked for updates.                        |
-````
+```

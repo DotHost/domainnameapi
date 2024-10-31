@@ -118,6 +118,32 @@ if ($action === 'status') {
     } elseif ($action === 'syncfromregistry') {
         $domainName = getRequiredParameter('domain', $input);
         $response = $dna->SyncFromRegistry($domainName); // Sync domain information from the registry
+    } elseif ($action === 'transferdomain') {
+        $domainName = getRequiredParameter('domain', $input);
+        $authCode = getRequiredParameter('authCode', $input);
+        $period = isset($input['period']) && is_numeric($input['period']) ? (int)$input['period'] : 1;
+
+        $result = $dna->Transfer($domainName, $authCode, $period);
+
+        if (isset($result['result']) && $result['result'] === "ERROR") {
+            $errorCode = $result['error']['Code'] ?? "UNKNOWN_ERROR";
+            $errorMessage = $result['error']['Message'] ?? "An error occurred";
+            sendErrorResponse(400, $errorCode, $errorMessage);
+        }
+
+        $response = $result;
+    } elseif ($action === 'canceltransfer') {
+        $domainName = getRequiredParameter('domain', $input);
+
+        $cancel = $dna->CancelTransfer($domainName);
+
+        if (isset($cancel['result']) && $cancel['result'] === "ERROR") {
+            $errorCode = $cancel['error']['Code'] ?? "UNKNOWN_ERROR";
+            $errorMessage = $cancel['error']['Message'] ?? "An error occurred";
+            sendErrorResponse(400, $errorCode, $errorMessage);
+        }
+
+        $response = $cancel;
     } else {
         sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
     }
