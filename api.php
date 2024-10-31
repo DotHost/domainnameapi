@@ -3,171 +3,174 @@ require_once __DIR__ . '/utilities.php';
 require_once __DIR__ . '/DomainNameApi/DomainNameAPI_PHPLibrary.php';
 
 $action = $_GET['action'] ?? 'status';
-
 $dna = null;
 
-if ($action === 'status') {
-    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        sendErrorResponse(405, "API_405_ERROR", "Only GET requests are allowed for the status action");
+function validateRequestMethod($expectedMethod)
+{
+    if ($_SERVER['REQUEST_METHOD'] !== $expectedMethod) {
+        sendErrorResponse(405, "API_405_ERROR", "Only {$expectedMethod} requests are allowed.");
     }
+}
+
+function handleErrorResponse($response)
+{
+    if (isset($response['result']) && $response['result'] === "ERROR") {
+        $errorCode = $response['error']['Code'] ?? "UNKNOWN_ERROR";
+        $errorMessage = $response['error']['Message'] ?? "An error occurred";
+        sendErrorResponse(400, $errorCode, $errorMessage);
+    }
+}
+
+function getDomainFromInput($input)
+{
+    return getRequiredParameter('domain', $input);
+}
+
+if ($action === 'status') {
+    validateRequestMethod('GET');
     $response = ['status' => 'success', 'message' => 'Domain Name API is active.'];
 } else {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        sendErrorResponse(405, "API_405_ERROR", "Only POST requests are allowed for this action");
-    }
+    validateRequestMethod('POST');
 
     $input = json_decode(file_get_contents("php://input"), true);
     $username = getRequiredParameter('username', $input);
     $password = getRequiredParameter('password', $input);
     $dna = new \DomainNameApi\DomainNameAPI_PHPLibrary($username, $password);
 
-    if ($action === 'tldlist') {
-        $count = is_numeric($input['count'] ?? null) ? (int)$input['count'] : 2;
-        $response = $dna->GetTldList($count);
-    } elseif ($action === 'singlecheckavailability') {
-        $domain = getRequiredParameter('domain', $input);
-        if (!preg_match('/^([a-zA-Z0-9-]+)\.([a-zA-Z.]{2,})$/', $domain, $matches)) {
-            sendErrorResponse(400, "API_400_ERROR", "Invalid domain format.");
-        }
-        $sld = $matches[1];
-        $tld = $matches[2];
-        $response = $dna->CheckAvailability([$sld], [$tld], 1, 'create');
-    } elseif ($action === 'bulkcheckavailability') {
-        $domains = getRequiredParameter('domains', $input);
-        if (!is_array($domains) || empty($domains)) {
-            sendErrorResponse(400, "API_400_ERROR", "Domains must be provided as a non-empty array.");
-        }
+    switch ($action) {
+        case 'tldlist':
+            $count = is_numeric($input['count'] ?? null) ? (int)$input['count'] : 2;
+            $response = $dna->GetTldList($count);
+            break;
 
-        $availabilityResults = [];
-        foreach ($domains as $domain) {
+        case 'singlecheckavailability':
+            $domain = getRequiredParameter('domain', $input);
             if (!preg_match('/^([a-zA-Z0-9-]+)\.([a-zA-Z.]{2,})$/', $domain, $matches)) {
-                $availabilityResults[$domain] = [
-                    'status' => 'error',
-                    'message' => "Invalid domain format."
-                ];
-                continue;
+                sendErrorResponse(400, "API_400_ERROR", "Invalid domain format.");
             }
-            $sld = $matches[1];
-            $tld = $matches[2];
-            $result = $dna->CheckAvailability([$sld], [$tld], 1, 'create');
-            $availabilityResults[$domain] = $result;
-        }
+            $response = $dna->CheckAvailability([$matches[1]], [$matches[2]], 1, 'create');
+            break;
 
-        $response = [
-            'status' => 'success',
-            'availability' => $availabilityResults
-        ];
-    } elseif ($action === 'resellerdetails') {
-        $response = $dna->GetResellerDetails();
-    } elseif ($action === 'registerdomain') {
-        $domainName = getRequiredParameter('domain', $input);
-        $period = getRequiredParameter('period', $input);
-        $contact = getRequiredParameter('contact', $input);
-        $registrant = getRequiredParameter('registrant', $input);
-        $nameservers = getRequiredParameter('nameservers', $input);
-        $privacyProtection = isset($input['privacyProtection']) ? (bool)$input['privacyProtection'] : false;
-        $eppLock = isset($input['eppLock']) ? (bool)$input['eppLock'] : true;
+        case 'bulkcheckavailability':
+            $domains = getRequiredParameter('domains', $input);
+            if (!is_array($domains) || empty($domains)) {
+                sendErrorResponse(400, "API_400_ERROR", "Domains must be provided as a non-empty array.");
+            }
 
-        $response = $dna->RegisterWithContactInfo(
-            $domainName,
-            $period,
-            [
-                'Administrative' => $contact,
-                'Billing'        => $contact,
-                'Technical'      => $contact,
-                'Registrant'     => $registrant
-            ],
-            $nameservers,
-            $eppLock,
-            $privacyProtection
-        );
-    } elseif ($action === 'getdomainlist') {
-        $response = $dna->GetList(); // Fetch domain list
-    } elseif ($action === 'getdetails') {
-        $domainName = getRequiredParameter('domain', $input);
-        $response = $dna->GetDetails($domainName); // Fetch domain details
-    } elseif ($action === 'checkbalance') {
-        $response = $dna->GetCurrentBalance(); // Check account balance
-    } elseif ($action === 'getcontacts') {
-        $domainName = getRequiredParameter('domain', $input);
-        $response = $dna->GetContacts($domainName); // Get contacts for a domain
-    } elseif ($action === 'enabletheftlock') {
-        $domainName = getRequiredParameter('domain', $input);
-        $response = $dna->EnableTheftProtectionLock($domainName); // Enable theft protection
-    } elseif ($action === 'disabletheftlock') {
-        $domainName = getRequiredParameter('domain', $input);
-        $response = $dna->DisableTheftProtectionLock($domainName); // Disable theft protection
-    } elseif ($action === 'modifynameserver') {
-        $domainName = getRequiredParameter('domain', $input);
-        $nameServers = getRequiredParameter('nameservers', $input);
-        $response = $dna->ModifyNameServer($domainName, $nameServers); // Modify name server
-    } elseif ($action === 'addchildnameserver') {
-        $domainName = getRequiredParameter('domain', $input);
-        $nameServer = getRequiredParameter('nameServer', $input);
-        $ipAddress = getRequiredParameter('ipAddress', $input);
-        $response = $dna->AddChildNameServer($domainName, $nameServer, $ipAddress); // Add child name server
-    } elseif ($action === 'modifychildnameserver') {
-        $domainName = getRequiredParameter('domain', $input);
-        $nameServer = getRequiredParameter('nameServer', $input);
-        $ipAddress = getRequiredParameter('ipAddress', $input);
-        $response = $dna->ModifyChildNameServer($domainName, $nameServer, $ipAddress); // Modify child name server
-    } elseif ($action === 'deletechildnameserver') {
-        $domainName = getRequiredParameter('domain', $input);
-        $nameServer = getRequiredParameter('nameServer', $input);
-        $response = $dna->DeleteChildNameServer($domainName, $nameServer); // Delete child name server
-    } elseif ($action === 'syncfromregistry') {
-        $domainName = getRequiredParameter('domain', $input);
-        $response = $dna->SyncFromRegistry($domainName); // Sync domain information from the registry
-    } elseif ($action === 'transferdomain') {
-        $domainName = getRequiredParameter('domain', $input);
-        $authCode = getRequiredParameter('authCode', $input);
-        $period = isset($input['period']) && is_numeric($input['period']) ? (int)$input['period'] : 1;
+            $availabilityResults = [];
+            foreach ($domains as $domain) {
+                if (!preg_match('/^([a-zA-Z0-9-]+)\.([a-zA-Z.]{2,})$/', $domain, $matches)) {
+                    $availabilityResults[$domain] = ['status' => 'error', 'message' => "Invalid domain format."];
+                    continue;
+                }
+                $result = $dna->CheckAvailability([$matches[1]], [$matches[2]], 1, 'create');
+                $availabilityResults[$domain] = $result;
+            }
 
-        $result = $dna->Transfer($domainName, $authCode, $period);
+            $response = ['status' => 'success', 'availability' => $availabilityResults];
+            break;
 
-        if (isset($result['result']) && $result['result'] === "ERROR") {
-            $errorCode = $result['error']['Code'] ?? "UNKNOWN_ERROR";
-            $errorMessage = $result['error']['Message'] ?? "An error occurred";
-            sendErrorResponse(400, $errorCode, $errorMessage);
-        }
+        case 'resellerdetails':
+            $response = $dna->GetResellerDetails();
+            break;
 
-        $response = $result;
-    } elseif ($action === 'canceltransfer') {
-        $domainName = getRequiredParameter('domain', $input);
+        case 'registerdomain':
+            $response = $dna->RegisterWithContactInfo(
+                getRequiredParameter('domain', $input),
+                getRequiredParameter('period', $input),
+                [
+                    'Administrative' => getRequiredParameter('contact', $input),
+                    'Billing'        => getRequiredParameter('contact', $input),
+                    'Technical'      => getRequiredParameter('contact', $input),
+                    'Registrant'     => getRequiredParameter('registrant', $input)
+                ],
+                getRequiredParameter('nameservers', $input),
+                (bool)($input['eppLock'] ?? true),
+                (bool)($input['privacyProtection'] ?? false)
+            );
+            break;
 
-        $cancel = $dna->CancelTransfer($domainName);
+        case 'getdomainlist':
+            $response = $dna->GetList();
+            break;
 
-        if (isset($cancel['result']) && $cancel['result'] === "ERROR") {
-            $errorCode = $cancel['error']['Code'] ?? "UNKNOWN_ERROR";
-            $errorMessage = $cancel['error']['Message'] ?? "An error occurred";
-            sendErrorResponse(400, $errorCode, $errorMessage);
-        }
+        case 'getdetails':
+            $response = $dna->GetDetails(getDomainFromInput($input));
+            break;
 
-        $response = $cancel;
-    } elseif ($action === 'modifyprivacystatus') {
-        $domainName = getRequiredParameter('domain', $input);
-        $status = getRequiredParameter('status', $input);
-        $reason = $input['reason'] ?? ''; // Optional comment
+        case 'checkbalance':
+            $response = $dna->GetCurrentBalance();
+            break;
 
-        $privacy = $dna->ModifyPrivacyProtectionStatus($domainName, $status, $reason);
+        case 'getcontacts':
+            $response = $dna->GetContacts(getDomainFromInput($input));
+            break;
 
-        if (isset($privacy['result']) && $privacy['result'] === "ERROR") {
-            $errorCode = $privacy['error']['Code'] ?? "UNKNOWN_ERROR";
-            $errorMessage = $privacy['error']['Message'] ?? "An error occurred";
-            sendErrorResponse(400, $errorCode, $errorMessage);
-        }
+        case 'enabletheftlock':
+            $response = $dna->EnableTheftProtectionLock(getDomainFromInput($input));
+            break;
 
-        $response = $privacy;
-    } else {
-        sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
+        case 'disabletheftlock':
+            $response = $dna->DisableTheftProtectionLock(getDomainFromInput($input));
+            break;
+
+        case 'modifynameserver':
+            $response = $dna->ModifyNameServer(getDomainFromInput($input), getRequiredParameter('nameservers', $input));
+            break;
+
+        case 'addchildnameserver':
+            $response = $dna->AddChildNameServer(
+                getDomainFromInput($input),
+                getRequiredParameter('nameServer', $input),
+                getRequiredParameter('ipAddress', $input)
+            );
+            break;
+
+        case 'modifychildnameserver':
+            $response = $dna->ModifyChildNameServer(
+                getDomainFromInput($input),
+                getRequiredParameter('nameServer', $input),
+                getRequiredParameter('ipAddress', $input)
+            );
+            break;
+
+        case 'deletechildnameserver':
+            $response = $dna->DeleteChildNameServer(getDomainFromInput($input), getRequiredParameter('nameServer', $input));
+            break;
+
+        case 'syncfromregistry':
+            $response = $dna->SyncFromRegistry(getDomainFromInput($input));
+            break;
+
+        case 'transferdomain':
+            $domainName = getDomainFromInput($input);
+            $authCode = getRequiredParameter('authCode', $input);
+            $period = isset($input['period']) && is_numeric($input['period']) ? (int)$input['period'] : 1;
+            $result = $dna->Transfer($domainName, $authCode, $period);
+            handleErrorResponse($result);
+            $response = $result;
+            break;
+
+        case 'canceltransfer':
+            $domainName = getDomainFromInput($input);
+            $cancel = $dna->CancelTransfer($domainName);
+            handleErrorResponse($cancel);
+            $response = $cancel;
+            break;
+
+        case 'modifyprivacystatus':
+            $domainName = getDomainFromInput($input);
+            $status = getRequiredParameter('status', $input);
+            $reason = $input['reason'] ?? '';
+            $privacy = $dna->ModifyPrivacyProtectionStatus($domainName, $status, $reason);
+            handleErrorResponse($privacy);
+            $response = $privacy;
+            break;
+
+        default:
+            sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
     }
 }
 
-if (isset($response['result']) && $response['result'] === "ERROR") {
-    $errorCode = $response['error']['Code'] ?? "UNKNOWN_ERROR";
-    $errorMessage = $response['error']['Message'] ?? "An error occurred";
-    $errorDetails = $response['error']['Details'] ?? "No additional details";
-    sendErrorResponse(400, $errorCode, $errorMessage, $errorDetails);
-}
-
+handleErrorResponse($response);
 echo json_encode($response);
