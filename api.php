@@ -81,16 +81,43 @@ if ($action === 'status') {
             $eppLock,
             $privacyProtection
         );
-    } elseif ($action === 'domainlist') {
-        // Fetch the domain list
-        $response = $dna->GetList();
-    } elseif ($action === 'domaindetails') {
-        // Fetch details for a specific domain
+    } elseif ($action === 'getdomainlist') {
+        $response = $dna->GetList(); // Fetch domain list
+    } elseif ($action === 'getdetails') {
         $domainName = getRequiredParameter('domain', $input);
-        $response = $dna->GetDetails($domainName);
+        $response = $dna->GetDetails($domainName); // Fetch domain details
     } elseif ($action === 'checkbalance') {
-        // Check reseller account balance
-        $response = $dna->GetCurrentBalance();
+        $response = $dna->GetCurrentBalance(); // Check account balance
+    } elseif ($action === 'getcontacts') {
+        $domainName = getRequiredParameter('domain', $input);
+        $response = $dna->GetContacts($domainName); // Get contacts for a domain
+    } elseif ($action === 'enabletheftlock') {
+        $domainName = getRequiredParameter('domain', $input);
+        $response = $dna->EnableTheftProtectionLock($domainName); // Enable theft protection
+    } elseif ($action === 'disabletheftlock') {
+        $domainName = getRequiredParameter('domain', $input);
+        $response = $dna->DisableTheftProtectionLock($domainName); // Disable theft protection
+    } elseif ($action === 'modifynameserver') {
+        $domainName = getRequiredParameter('domain', $input);
+        $nameServers = getRequiredParameter('nameservers', $input);
+        $response = $dna->ModifyNameServer($domainName, $nameServers); // Modify name server
+    } elseif ($action === 'addchildnameserver') {
+        $domainName = getRequiredParameter('domain', $input);
+        $nameServer = getRequiredParameter('nameServer', $input);
+        $ipAddress = getRequiredParameter('ipAddress', $input);
+        $response = $dna->AddChildNameServer($domainName, $nameServer, $ipAddress); // Add child name server
+    } elseif ($action === 'modifychildnameserver') {
+        $domainName = getRequiredParameter('domain', $input);
+        $nameServer = getRequiredParameter('nameServer', $input);
+        $ipAddress = getRequiredParameter('ipAddress', $input);
+        $response = $dna->ModifyChildNameServer($domainName, $nameServer, $ipAddress); // Modify child name server
+    } elseif ($action === 'deletechildnameserver') {
+        $domainName = getRequiredParameter('domain', $input);
+        $nameServer = getRequiredParameter('nameServer', $input);
+        $response = $dna->DeleteChildNameServer($domainName, $nameServer); // Delete child name server
+    } elseif ($action === 'syncfromregistry') {
+        $domainName = getRequiredParameter('domain', $input);
+        $response = $dna->SyncFromRegistry($domainName); // Sync domain information from the registry
     } else {
         sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
     }
