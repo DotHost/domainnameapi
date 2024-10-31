@@ -45,7 +45,7 @@ When domain is registered, it may take some time to get fully updated on the int
 ## CAUTION 🚧
 
 
-``TransferDomain`` endpoint and ``CancelTransfer`` endpoint haven't been tested, We should
+``TransferDomain`` endpoint , ``CancelTransfer`` endpoint and ``ModifyPrivacy`` endpoint haven't been tested, We should
 test sometime soon but do well to share with us a sample response to update our
 documentation if you test!
 

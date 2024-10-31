@@ -144,6 +144,20 @@ if ($action === 'status') {
         }
 
         $response = $cancel;
+    } elseif ($action === 'modifyprivacystatus') {
+        $domainName = getRequiredParameter('domain', $input);
+        $status = getRequiredParameter('status', $input);
+        $reason = $input['reason'] ?? ''; // Optional comment
+
+        $privacy = $dna->ModifyPrivacyProtectionStatus($domainName, $status, $reason);
+
+        if (isset($privacy['result']) && $privacy['result'] === "ERROR") {
+            $errorCode = $privacy['error']['Code'] ?? "UNKNOWN_ERROR";
+            $errorMessage = $privacy['error']['Message'] ?? "An error occurred";
+            sendErrorResponse(400, $errorCode, $errorMessage);
+        }
+
+        $response = $privacy;
     } else {
         sendErrorResponse(400, "API_400_ERROR", "Invalid action requested.");
     }
