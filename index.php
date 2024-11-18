@@ -4,8 +4,8 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/utilities.php';
 
 // Define rate limiting settings
-$rateLimit = 1000; // Maximum number of requests allowed
-$timeWindow = 600; // Time window in seconds (e.g., 10 Minutes)
+$rateLimit = 10000; // Maximum number of requests allowed
+$timeWindow = 300; // Time window in seconds (e.g., 5 Minutes)
 
 // Get the client's IP address
 $clientIP = $_SERVER['REMOTE_ADDR'];
